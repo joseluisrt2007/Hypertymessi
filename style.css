@@ -6,24 +6,296 @@
 
 html, body {
   height: 100%;
-  background: #000;
+  background: #202020;
+  font-family: Arial, sans-serif;
+  color: white;
   overflow: hidden;
 }
 
-#game-wrap {
+.screen {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.bg-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+/* ---------------- MENU ---------------- */
+
+.menu-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 20px 60px;
+  min-height: 100%;
+  background: rgba(20, 20, 20, 0.45);
+}
+
+.corner-btn {
+  align-self: flex-end;
+  background: #555555;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.corner-btn:hover {
+  background: #6a6a6a;
+}
+
+.title {
+  margin-top: 10px;
+  font-size: 42px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.subtitle {
+  margin-top: 10px;
+  font-size: 22px;
+  text-align: center;
+}
+
+.field-label {
+  margin-top: 20px;
+  font-size: 20px;
+}
+
+.name-input {
+  margin-top: 10px;
+  font-size: 20px;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: none;
+  width: 260px;
+}
+
+.btn {
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  color: white;
+}
+
+.btn:hover {
+  filter: brightness(1.1);
+}
+
+.btn-start {
+  margin-top: 20px;
+  background: #00cc88;
+  font-size: 20px;
+  width: 260px;
+  height: 60px;
+}
+
+.highscores {
+  margin-top: 30px;
+  font-size: 18px;
+  color: #cccccc;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.highscores .hs-title {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+/* ---------------- JUEGO ---------------- */
+
+.game-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100%;
+  padding: 20px;
+  background: rgba(20, 20, 20, 0.35);
+}
+
+.header-bar {
+  font-size: 18px;
+  background: rgba(32, 32, 32, 0.85);
+  padding: 8px 20px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.main-area {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 60px;
+  flex: 1;
   width: 100%;
-  height: 100%;
+}
+
+.board-frame {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
 }
 
-#game {
-  background: #000;
-  max-width: 100%;
-  max-height: 100%;
-  width: 1280px;
-  height: 720px;
-  image-rendering: -webkit-optimize-contrast;
-  cursor: default;
+.board {
+  display: grid;
+  gap: 4px;
+  background: rgba(32, 32, 32, 0.5);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #b0b0b0;
+  color: black;
+  font-weight: bold;
+  border-radius: 3px;
+  user-select: none;
+}
+
+.cell-input {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  border: none;
+  border-radius: 3px;
+  background: #ffffff;
+  color: black;
+  font-weight: bold;
+  padding: 0;
+}
+
+.cell-input:disabled {
+  background: #d8f5e3;
+}
+
+.side-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+.btn-side {
+  width: 180px;
+  height: 55px;
+  font-size: 14px;
+}
+
+.btn-pista {
+  background: #bbbbbb;
+  color: black;
+}
+
+.btn-check {
+  background: #90ee90;
+  color: black;
+}
+
+.btn-pause {
+  background: #999999;
+  color: black;
+}
+
+.countdown-label {
+  margin-top: 15px;
+  font-size: 18px;
+  color: #ffcc00;
+  min-height: 24px;
+}
+
+/* ---------------- MODALES ---------------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.modal-content {
+  background: #303030;
+  border-radius: 8px;
+  padding: 30px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 90vw;
+}
+
+.modal-content h2 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.modal-btn {
+  width: 220px;
+  height: 45px;
+  font-size: 16px;
+}
+
+.btn-resume {
+  background: #00cc88;
+}
+
+.btn-restart {
+  background: #ffaa00;
+  color: black;
+}
+
+.btn-back {
+  background: #ff4444;
+}
+
+.tutorial-content {
+  max-width: 650px;
+  background: #202020;
+}
+
+.tutorial-content h2 {
+  color: #00ffcc;
+  font-size: 26px;
+}
+
+.tutorial-text {
+  font-size: 16px;
+  line-height: 1.6;
+  text-align: left;
+  padding: 10px 0 20px;
+}
+
+.alert-message {
+  font-size: 16px;
+  text-align: center;
+  white-space: pre-line;
+  max-width: 400px;
 }

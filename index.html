@@ -3,20 +3,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pong Definitive Edition</title>
-<link rel="icon" href="assets/pong.ico">
+<title>Hypertymessi</title>
+<link rel="icon" href="assets/icon.ico">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="game-wrap">
-    <canvas id="game" width="1280" height="720"></canvas>
+
+  <!-- ---------------- PANTALLA DE MENU ---------------- -->
+  <div id="menu-screen" class="screen">
+    <div class="bg-image" style="background-image:url('assets/Bg/menu.jpg')"></div>
+    <div class="menu-content">
+      <button id="tutorial-btn" class="corner-btn">❓ Cómo Jugar</button>
+
+      <h1 class="title">🧠 HYPERTYMESSI 🧠</h1>
+      <p class="subtitle">🚀 Sube de nivel con tu mente como tu única arma.</p>
+
+      <label class="field-label" for="name-input">Ingresa tu nombre:</label>
+      <input id="name-input" class="name-input" type="text" maxlength="20" autocomplete="off">
+
+      <button id="start-btn" class="btn btn-start">🎮 Iniciar Juego</button>
+
+      <div id="highscores" class="highscores"></div>
+    </div>
   </div>
 
-  <audio id="music" src="assets/background_music.mp3" loop preload="auto"></audio>
-  <audio id="sfx-hit" src="assets/hit.mp3" preload="auto"></audio>
-  <audio id="sfx-punto" src="assets/punto.mp3" preload="auto"></audio>
-  <audio id="sfx-pausa" src="assets/pausa.mp3" preload="auto"></audio>
-  <audio id="sfx-select" src="assets/select.mp3" preload="auto"></audio>
+  <!-- ---------------- PANTALLA DE JUEGO ---------------- -->
+  <div id="game-screen" class="screen hidden">
+    <div class="bg-image" style="background-image:url('assets/Bg/background.jpg')"></div>
+    <div class="game-content">
+      <div id="header-bar" class="header-bar"></div>
+
+      <div class="main-area">
+        <div class="board-frame">
+          <div id="board" class="board"></div>
+        </div>
+
+        <div class="side-frame">
+          <button id="pista-btn" class="btn btn-side btn-pista">🔎 Pista (50 pts)</button>
+          <button id="check-btn" class="btn btn-side btn-check">✔️ Verificar</button>
+          <button id="pause-btn" class="btn btn-side btn-pause">⏸ Pausa</button>
+        </div>
+      </div>
+
+      <div id="countdown-label" class="countdown-label"></div>
+    </div>
+  </div>
+
+  <!-- ---------------- MODAL DE PAUSA ---------------- -->
+  <div id="pause-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>⏸ Juego en pausa</h2>
+      <button id="resume-btn" class="btn modal-btn btn-resume">▶ Reanudar</button>
+      <button id="restart-level-btn" class="btn modal-btn btn-restart">🔄 Reiniciar Nivel</button>
+      <button id="back-menu-btn" class="btn modal-btn btn-back">🏠 Volver al Menú</button>
+    </div>
+  </div>
+
+  <!-- ---------------- MODAL DE TUTORIAL ---------------- -->
+  <div id="tutorial-modal" class="modal hidden">
+    <div class="modal-content tutorial-content">
+      <h2>🧩 CÓMO JUGAR HYPERTYMESSI 🧩</h2>
+      <p class="tutorial-text">
+        🧠 El objetivo del juego es memorizar los números que aparecen en la cuadrícula.<br><br>
+        📋 Cada nivel aumenta el tamaño del tablero (de 2x2 hasta 10x10).<br><br>
+        ⏳ Tienes 10 segundos para memorizar los números antes de que se oculten.<br><br>
+        ⌨️ Luego escribe los números que recuerdes directamente en las casillas vacías.<br><br>
+        💡 Puedes usar una pista (cuesta 50 puntos) para revelar algunos números.<br><br>
+        🎯 Si aciertas todos los números, avanzas al siguiente nivel y ganas puntos extra.<br><br>
+        💾 Tu mejor puntaje se guarda automáticamente junto a tu nombre.<br><br>
+        🎮 ¡Sigue avanzando hasta el nivel 10 y demuestra tu memoria!
+      </p>
+      <button id="close-tutorial-btn" class="btn modal-btn btn-resume">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ---------------- MODAL DE ALERTA GENERICO ---------------- -->
+  <div id="alert-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="alert-title"></h2>
+      <p id="alert-message" class="alert-message"></p>
+      <button id="alert-close-btn" class="btn modal-btn btn-resume">Aceptar</button>
+    </div>
+  </div>
+
+  <audio id="bgmusic" loop preload="auto"></audio>
+  <audio id="sfx-win" src="assets/win.mp3" preload="auto"></audio>
+  <audio id="sfx-lose" src="assets/lose.mp3" preload="auto"></audio>
+  <audio id="sfx-pista" src="assets/pista.mp3" preload="auto"></audio>
 
   <script src="script.js"></script>
 </body>

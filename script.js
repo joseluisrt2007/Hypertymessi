@@ -1,336 +1,379 @@
 // ============================================================
-// Pong Definitive Edition - version web (HTML5 Canvas)
-// Replica fiel del juego original hecho en Python + Pygame
+// Hypertymessi - version web (HTML + CSS + JS)
+// Replica fiel del juego original hecho en Python + Tkinter
 // ============================================================
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+// ---------- Elementos ----------
+const menuScreen = document.getElementById("menu-screen");
+const gameScreen = document.getElementById("game-screen");
 
-const musicEl = document.getElementById("music");
-const sfxHit = document.getElementById("sfx-hit");
-const sfxPunto = document.getElementById("sfx-punto");
-const sfxPausa = document.getElementById("sfx-pausa");
-const sfxSelect = document.getElementById("sfx-select");
+const tutorialBtn = document.getElementById("tutorial-btn");
+const nameInput = document.getElementById("name-input");
+const startBtn = document.getElementById("start-btn");
+const highscoresEl = document.getElementById("highscores");
+
+const headerBar = document.getElementById("header-bar");
+const boardEl = document.getElementById("board");
+const pistaBtn = document.getElementById("pista-btn");
+const checkBtn = document.getElementById("check-btn");
+const pauseBtn = document.getElementById("pause-btn");
+const countdownLabel = document.getElementById("countdown-label");
+
+const pauseModal = document.getElementById("pause-modal");
+const resumeBtn = document.getElementById("resume-btn");
+const restartLevelBtn = document.getElementById("restart-level-btn");
+const backMenuBtn = document.getElementById("back-menu-btn");
+
+const tutorialModal = document.getElementById("tutorial-modal");
+const closeTutorialBtn = document.getElementById("close-tutorial-btn");
+
+const alertModal = document.getElementById("alert-modal");
+const alertTitle = document.getElementById("alert-title");
+const alertMessage = document.getElementById("alert-message");
+const alertCloseBtn = document.getElementById("alert-close-btn");
+
+const bgmusic = document.getElementById("bgmusic");
+const sfxWin = document.getElementById("sfx-win");
+const sfxLose = document.getElementById("sfx-lose");
+const sfxPista = document.getElementById("sfx-pista");
+
+// ---------- Estado del juego ----------
+const HIGHSCORE_KEY = "hypertymessi_highscores";
+let highscores = {};
+
+let playerName = "";
+let score = 0;
+let level = 2;
+const MAX_LEVEL = 10;
+
+let matrix = [];       // valores correctos
+let hiddenMask = [];   // true = celda oculta (input editable)
+let pistaUsada = false;
+let pistaCosto = 50;
+
+let countdownTimer = null;
+
+// ---------- Utilidades de audio ----------
+function playMusic(name) {
+  try {
+    bgmusic.pause();
+    bgmusic.src = `assets/music/${name}.mp3`;
+    bgmusic.currentTime = 0;
+    bgmusic.play().catch(() => {});
+  } catch (e) { /* silencioso, igual que el original */ }
+}
+
+function stopMusic() {
+  bgmusic.pause();
+}
 
 function playSfx(el) {
   el.currentTime = 0;
   el.play().catch(() => {});
 }
 
-const WIDTH = canvas.width;   // 1280
-const HEIGHT = canvas.height; // 720
+// ---------- Alerta generica (reemplaza messagebox) ----------
+function showAlert(title, message, onClose) {
+  alertTitle.textContent = title;
+  alertMessage.textContent = message;
+  alertModal.classList.remove("hidden");
+  alertCloseBtn.onclick = () => {
+    alertModal.classList.add("hidden");
+    if (onClose) onClose();
+  };
+}
 
-// ---------- Fuentes ----------
-const FONT_SCORE = "bold 90px Arial, sans-serif";
-const FONT_TITULO = "bold 60px Arial, sans-serif";
-const FONT_INICIO = "24px Arial, sans-serif";
-const FONT_MENU = "bold 70px Arial, sans-serif";
-
-// ---------- Boton de inicio (menu) ----------
-const botonJugar = { x: WIDTH / 2 - 100, y: HEIGHT / 2 - 25, w: 200, h: 50 };
-
-// ---------- Estado del juego ----------
-let mostrarInicio = true;
-let paused = false;
-const menuOptions = ["Continuar", "Reiniciar", "Menú principal"];
-let selectedOption = 0;
-
-// ---------- Pelota ----------
-class Ball {
-  constructor() {
-    this.radius = 15;
-    this.baseSpeed = 10;
-    this.reset();
-  }
-
-  reset() {
-    this.x = WIDTH / 2;
-    this.y = HEIGHT / 2;
-    this.speed = this.baseSpeed;
-    let angle = (Math.random() * (Math.PI / 2)) - Math.PI / 4; // -45° a 45°
-    if (Math.random() < 0.5) angle += Math.PI;
-    this.dx = Math.cos(angle);
-    this.dy = Math.sin(angle);
-  }
-
-  move() {
-    if (this.y - this.radius <= 0 || this.y + this.radius >= HEIGHT) {
-      this.dy *= -1;
-    }
-    this.x += this.dx * this.speed;
-    this.y += this.dy * this.speed;
-  }
-
-  getRect() {
-    return {
-      x: this.x - this.radius,
-      y: this.y - this.radius,
-      w: this.radius * 2,
-      h: this.radius * 2
-    };
-  }
-
-  bouncePadel() {
-    this.dx *= -1;
-    this.dy += (Math.random() * 0.5) - 0.25; // -0.25 a 0.25
-    const length = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
-    this.dx /= length;
-    this.dy /= length;
-    this.speed += 0.5;
-    playSfx(sfxHit);
-  }
-
-  draw() {
-    ctx.fillStyle = "red";
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fill();
+// ---------- Guardado de puntajes (localStorage en vez de archivo) ----------
+function loadHighscores() {
+  try {
+    const raw = localStorage.getItem(HIGHSCORE_KEY);
+    highscores = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    highscores = {};
   }
 }
 
-// ---------- Paddle ----------
-class Padel {
-  constructor(x, y, w, h) {
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
-    this.speed = 12;
-  }
-
-  draw() {
-    ctx.fillStyle = "white";
-    ctx.fillRect(this.x, this.y, this.w, this.h);
-  }
-
-  getRect() {
-    return { x: this.x, y: this.y, w: this.w, h: this.h };
-  }
-
-  checkCollision(ball) {
-    return rectsIntersect(this.getRect(), ball.getRect());
-  }
+function saveHighscore() {
+  if (!playerName) return;
+  highscores[playerName] = Math.max(score, highscores[playerName] || 0);
+  localStorage.setItem(HIGHSCORE_KEY, JSON.stringify(highscores));
 }
 
-function rectsIntersect(a, b) {
-  return a.x < b.x + b.w &&
-         a.x + a.w > b.x &&
-         a.y < b.y + b.h &&
-         a.y + a.h > b.y;
+function renderHighscores() {
+  const entries = Object.entries(highscores).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) {
+    highscoresEl.textContent = "Sin puntajes aún.";
+    return;
+  }
+  const top5 = entries.slice(0, 5);
+  const lines = top5.map(([n, p]) => `${n}: ${p}`).join("\n");
+  highscoresEl.innerHTML = `<div class="hs-title">🏆 TOP 5 PUNTAJES 🏆</div>${lines.replace(/\n/g, "<br>")}`;
 }
 
-// ---------- Posicion inicial de padels y pelota ----------
-const p1 = new Padel(40, HEIGHT / 2 - 75, 20, 150);
-const p2 = new Padel(WIDTH - 60, HEIGHT / 2 - 75, 20, 150);
-const ball = new Ball();
+// ---------- Pantalla de menu ----------
+function startMenu() {
+  clearTimeout(countdownTimer);
+  gameScreen.classList.add("hidden");
+  menuScreen.classList.remove("hidden");
+  playMusic("menu");
+  renderHighscores();
+  nameInput.value = playerName || "";
+}
 
-// ---------- Marcador ----------
-let scoreP1 = 0;
-let scoreP2 = 0;
+function onStart() {
+  const name = nameInput.value.trim();
+  if (!name) {
+    showAlert("Nombre requerido", "Por favor ingresa tu nombre.");
+    return;
+  }
+  playerName = name;
+  score = 0;
+  level = 2;
+  startLevel();
+}
 
-// ---------- Entradas de teclado ----------
-const keysPressed = {};
-let backspaceLocked = false; // evita parpadeo por tecla sostenida
+// ---------- Mecanica del nivel ----------
+function startLevel() {
+  clearTimeout(countdownTimer);
+  menuScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+  pistaUsada = false;
 
-window.addEventListener("keydown", (e) => {
-  keysPressed[e.code] = true;
+  playMusic(`level${level}`);
 
-  if (mostrarInicio) return;
+  // Generar matriz y mascara
+  matrix = Array.from({ length: level }, () =>
+    Array.from({ length: level }, () => Math.floor(Math.random() * 10))
+  );
+  hiddenMask = Array.from({ length: level }, () => Array(level).fill(false));
 
-  // Pausa con BACKSPACE
-  if (e.code === "Backspace" && !backspaceLocked) {
-    playSfx(sfxPausa);
-    paused = !paused;
-    backspaceLocked = true;
-    if (paused) {
-      musicEl.pause();
+  renderHeader();
+  renderBoard();
+
+  countdownLabel.textContent = "";
+  let secondsLeft = 10;
+  countdownLabel.textContent = `Memoriza los números... ${secondsLeft}`;
+  countdownTimer = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft <= 0) {
+      clearInterval(countdownTimer);
+      countdownLabel.textContent = "";
+      hideRandomCells();
     } else {
-      musicEl.play().catch(() => {});
+      countdownLabel.textContent = `Memoriza los números... ${secondsLeft}`;
     }
-  }
-
-  if (paused) {
-    if (e.code === "ArrowUp") {
-      playSfx(sfxSelect);
-      selectedOption = (selectedOption - 1 + menuOptions.length) % menuOptions.length;
-    }
-    if (e.code === "ArrowDown") {
-      playSfx(sfxSelect);
-      selectedOption = (selectedOption + 1) % menuOptions.length;
-    }
-    if (e.code === "Enter") {
-      const opcion = menuOptions[selectedOption];
-      if (opcion === "Continuar") {
-        paused = false;
-        musicEl.play().catch(() => {});
-      } else if (opcion === "Reiniciar") {
-        scoreP1 = 0;
-        scoreP2 = 0;
-        ball.reset();
-        paused = false;
-        musicEl.currentTime = 0;
-        musicEl.play().catch(() => {});
-      } else if (opcion === "Menú principal") {
-        volverAlInicio();
-      }
-    }
-  }
-});
-
-window.addEventListener("keyup", (e) => {
-  keysPressed[e.code] = false;
-  if (e.code === "Backspace") backspaceLocked = false;
-});
-
-// ---------- Clics del mouse (pantalla de inicio) ----------
-canvas.addEventListener("click", (e) => {
-  if (!mostrarInicio) return;
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = WIDTH / rect.width;
-  const scaleY = HEIGHT / rect.height;
-  const clickX = (e.clientX - rect.left) * scaleX;
-  const clickY = (e.clientY - rect.top) * scaleY;
-
-  if (dentroDe(clickX, clickY, botonJugar)) {
-    mostrarInicio = false;
-    musicEl.currentTime = 0;
-    musicEl.play().catch(() => {});
-  }
-});
-
-function dentroDe(x, y, boton) {
-  return x >= boton.x && x <= boton.x + boton.w &&
-         y >= boton.y && y <= boton.y + boton.h;
+  }, 1000);
 }
 
-// Vuelve a la pantalla principal, reiniciando el estado de la partida
-function volverAlInicio() {
-  mostrarInicio = true;
-  paused = false;
-  selectedOption = 0;
-  scoreP1 = 0;
-  scoreP2 = 0;
-  ball.reset();
-  p1.y = HEIGHT / 2 - p1.h / 2;
-  p2.y = HEIGHT / 2 - p2.h / 2;
-  musicEl.pause();
-  musicEl.currentTime = 0;
+function renderHeader() {
+  headerBar.textContent = `Jugador: ${playerName}   |   Nivel: ${level}x${level}   |   Puntos: ${score}`;
 }
 
-// ---------- Dibujar pantalla de inicio ----------
-function pantallaInicio() {
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  // Titulo
-  ctx.fillStyle = "white";
-  ctx.font = FONT_TITULO;
-  ctx.textAlign = "center";
-  ctx.fillText("PONG DEFINITIVE EDITION", WIDTH / 2, HEIGHT / 2 - 160);
-
-  // Boton
-  ctx.fillStyle = "yellow";
-  ctx.fillRect(botonJugar.x, botonJugar.y, botonJugar.w, botonJugar.h);
-
-  ctx.font = FONT_INICIO;
-  ctx.fillStyle = "black";
-  ctx.fillText("Jugar", botonJugar.x + botonJugar.w / 2, botonJugar.y + 32);
-
-  ctx.textAlign = "left";
+function cellSizeForLevel() {
+  const size = Math.floor(440 / level) - 4;
+  return Math.max(28, Math.min(70, size));
 }
 
-// ---------- Bucle principal ----------
-function update() {
-  if (paused) return;
+function renderBoard() {
+  boardEl.innerHTML = "";
+  const size = cellSizeForLevel();
+  boardEl.style.gridTemplateColumns = `repeat(${level}, ${size}px)`;
+  boardEl.style.gridTemplateRows = `repeat(${level}, ${size}px)`;
 
-  // Controles
-  if (keysPressed["KeyW"] && p1.y > 0) {
-    p1.y -= p1.speed;
-  }
-  if (keysPressed["KeyS"] && p1.y + p1.h < HEIGHT) {
-    p1.y += p1.speed;
-  }
-  if (keysPressed["ArrowUp"] && p2.y > 0) {
-    p2.y -= p2.speed;
-  }
-  if (keysPressed["ArrowDown"] && p2.y + p2.h < HEIGHT) {
-    p2.y += p2.speed;
-  }
+  const fontSize = Math.max(12, Math.min(20, size * 0.4));
 
-  ball.move();
-
-  // Colisiones con padels
-  if (p1.checkCollision(ball)) {
-    ball.bouncePadel();
-    ball.x = p1.x + p1.w + ball.radius;
-  }
-  if (p2.checkCollision(ball)) {
-    ball.bouncePadel();
-    ball.x = p2.x - ball.radius;
-  }
-
-  // Puntos
-  if (ball.x < 0) {
-    scoreP2 += 1;
-    ball.reset();
-    ball.speed += 1;
-    playSfx(sfxPunto);
-  }
-  if (ball.x > WIDTH) {
-    scoreP1 += 1;
-    ball.reset();
-    ball.speed += 1;
-    playSfx(sfxPunto);
+  for (let r = 0; r < level; r++) {
+    for (let c = 0; c < level; c++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.style.width = `${size}px`;
+      cell.style.height = `${size}px`;
+      cell.style.fontSize = `${fontSize}px`;
+      cell.textContent = String(matrix[r][c]);
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      boardEl.appendChild(cell);
+    }
   }
 }
 
-function draw() {
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  // Linea divisoria central (punteada)
-  ctx.fillStyle = "white";
-  for (let y = 0; y < HEIGHT; y += 40) {
-    ctx.fillRect(WIDTH / 2 - 5, y, 10, 20);
+function hideRandomCells() {
+  const numToHide = level + Math.floor(Math.random() * 3); // level, level+1 o level+2
+  const positions = [];
+  for (let r = 0; r < level; r++) {
+    for (let c = 0; c < level; c++) positions.push([r, c]);
   }
+  // barajar y tomar las primeras numToHide
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  const chosen = positions.slice(0, Math.min(numToHide, positions.length));
 
-  // Marcador
-  ctx.font = FONT_SCORE;
-  ctx.fillStyle = "white";
-  ctx.textAlign = "center";
-  ctx.fillText(`${scoreP1}   ${scoreP2}`, WIDTH / 2, 90);
-  ctx.textAlign = "left";
+  chosen.forEach(([r, c]) => {
+    hiddenMask[r][c] = true;
+    const cellDiv = boardEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+    const size = cellSizeForLevel();
+    const fontSize = Math.max(12, Math.min(20, size * 0.4));
 
-  if (!paused) {
-    p1.draw();
-    p2.draw();
-    ball.draw();
-  } else {
-    // Menu de pausa
-    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-    ctx.textAlign = "center";
-    ctx.fillStyle = "yellow";
-    ctx.font = FONT_MENU;
-    ctx.fillText("PAUSA", WIDTH / 2, 170);
-
-    menuOptions.forEach((opcion, i) => {
-      ctx.fillStyle = (i === selectedOption) ? "cyan" : "white";
-      ctx.fillText(opcion, WIDTH / 2, 320 + i * 150);
+    const input = document.createElement("input");
+    input.type = "text";
+    input.inputMode = "numeric";
+    input.maxLength = 1;
+    input.className = "cell-input";
+    input.style.fontSize = `${fontSize}px`;
+    input.dataset.r = r;
+    input.dataset.c = c;
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/[^0-9]/g, "").slice(0, 1);
     });
-    ctx.textAlign = "left";
-  }
+
+    cellDiv.textContent = "";
+    cellDiv.appendChild(input);
+  });
 }
 
-function gameLoop() {
-  if (mostrarInicio) {
-    pantallaInicio();
+function getDisplayedValue(r, c) {
+  const cellDiv = boardEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+  const input = cellDiv.querySelector("input");
+  if (input) return input.value;
+  return cellDiv.textContent;
+}
+
+function usarPista() {
+  if (pistaUsada) {
+    showAlert("Pista", "Ya usaste una pista en este nivel.");
+    return;
+  }
+  pistaUsada = true;
+  score = Math.max(0, score - pistaCosto);
+  playSfx(sfxPista);
+
+  const hiddenPositions = [];
+  for (let r = 0; r < level; r++) {
+    for (let c = 0; c < level; c++) {
+      if (hiddenMask[r][c]) hiddenPositions.push([r, c]);
+    }
+  }
+  const revealCount = Math.max(1, Math.floor(hiddenPositions.length / 2));
+
+  // barajar y tomar revealCount
+  for (let i = hiddenPositions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [hiddenPositions[i], hiddenPositions[j]] = [hiddenPositions[j], hiddenPositions[i]];
+  }
+  const toReveal = hiddenPositions.slice(0, revealCount);
+
+  toReveal.forEach(([r, c]) => {
+    const cellDiv = boardEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+    cellDiv.innerHTML = "";
+    cellDiv.textContent = String(matrix[r][c]);
+    hiddenMask[r][c] = false;
+  });
+
+  renderHeader();
+  showAlert("Pista usada", `Se revelaron ${toReveal.length} números.\n(-${pistaCosto} puntos)`);
+}
+
+function checkLevel() {
+  let correct = 0;
+  const total = level * level;
+
+  for (let r = 0; r < level; r++) {
+    for (let c = 0; c < level; c++) {
+      const expected = String(matrix[r][c]);
+      const actual = getDisplayedValue(r, c);
+      if (expected === actual) correct++;
+    }
+  }
+
+  const puntos = correct * 10;
+  score += puntos;
+  saveHighscore();
+
+  if (correct === total) {
+    playSfx(sfxWin);
+    score += level * 50;
+    saveHighscore();
+    renderHeader();
+    showAlert("¡Correcto!", `Perfecto ${playerName}!\nGanaste ${puntos} puntos.`, () => {
+      level += 1;
+      if (level <= MAX_LEVEL) {
+        startLevel();
+      } else {
+        endGame();
+      }
+    });
   } else {
-    update();
-    draw();
+    playSfx(sfxLose);
+    score = Math.max(0, score - level * 15);
+    saveHighscore();
+    renderHeader();
+    showAlert("Error", `Tuviste ${correct}/${total} correctos. Intenta otra vez.`);
   }
-  requestAnimationFrame(gameLoop);
 }
 
-requestAnimationFrame(gameLoop);
+function endGame() {
+  saveHighscore();
+  stopMusic();
+  showAlert("Juego terminado", `Gracias por jugar, ${playerName}!\nPuntaje final: ${score}`, () => {
+    startMenu();
+  });
+}
+
+// ---------- Menu de pausa ----------
+function openPauseMenu() {
+  stopMusic();
+  pauseModal.classList.remove("hidden");
+}
+
+function resumeGame() {
+  pauseModal.classList.add("hidden");
+  playMusic(`level${level}`);
+}
+
+function restartLevel() {
+  pauseModal.classList.add("hidden");
+  startLevel();
+}
+
+function backToMenu() {
+  pauseModal.classList.add("hidden");
+  startMenu();
+}
+
+// ---------- Tutorial ----------
+function openTutorial() {
+  tutorialModal.classList.remove("hidden");
+}
+
+function closeTutorial() {
+  tutorialModal.classList.add("hidden");
+}
+
+// ---------- Eventos ----------
+startBtn.addEventListener("click", onStart);
+nameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") onStart();
+});
+
+tutorialBtn.addEventListener("click", openTutorial);
+closeTutorialBtn.addEventListener("click", closeTutorial);
+
+pistaBtn.addEventListener("click", usarPista);
+checkBtn.addEventListener("click", checkLevel);
+pauseBtn.addEventListener("click", openPauseMenu);
+
+resumeBtn.addEventListener("click", resumeGame);
+restartLevelBtn.addEventListener("click", restartLevel);
+backMenuBtn.addEventListener("click", backToMenu);
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !gameScreen.classList.contains("hidden") && pauseModal.classList.contains("hidden")) {
+    openPauseMenu();
+  }
+});
+
+// ---------- Inicio ----------
+loadHighscores();
+startMenu();
